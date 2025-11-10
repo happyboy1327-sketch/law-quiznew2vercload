@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💡 법률 상식 퀴즈 💡</title>
+    
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d; 
+            --success-color: #28a745; 
+            --danger-color: #dc3545; 
+            --warning-color: #ffc107; 
+            --font-color: #343a40;
+            --background-color: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--font-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #quiz-container, #result-screen, #review-screen {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease-in-out;
+            margin-bottom: 20px;
+        }
+        
+        #result-screen, #review-screen {
+            display: none;
+            text-align: center;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+        }
+
+        #quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+        }
+        
+        #timer {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--danger-color);
+            padding: 5px 15px;
+            border: 2px solid var(--danger-color);
+            border-radius: 8px;
+        }
+
+        #question-text {
+            font-size: 1.3em;
+            font-weight: 500;
+            margin-bottom: 20px;
+            background-color: #f1f3f5;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .option-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: left;
+            border: 1px solid var(--secondary-color);
+            border-radius: 8px;
+            background-color: white;
+            color: var(--font-color);
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+        }
+
+        .option-button:hover:not([disabled]) {
+            background-color: #e9ecef;
+            border-color: var(--primary-color);
+        }
+        
+        /* --- 피드백 및 해설 --- */
+        .correct {
+            background-color: #d4edda !important;
+            border-color: var(--success-color) !important;
+            color: var(--success-color) !important;
+            font-weight: bold;
+        }
+
+        .incorrect {
+            background-color: #f8d7da !important;
+            border-color: var(--danger-color) !important;
+            color: var(--danger-color) !important;
+            font-weight: bold;
+        }
+        
+        #explanation-area {
+            border-top: 2px dashed var(--secondary-color);
+            padding-top: 20px;
+            margin-top: 25px;
+        }
+
+        #feedback-message {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .feedback-correct { background-color: #d4edda; color: var(--success-color); }
+        .feedback-incorrect { background-color: #f8d7da; color: var(--danger-color); }
+
+
+        #explanation-content {
+            white-space: pre-wrap;
+            background-color: #fff3cd; 
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--warning-color);
+            color: #856404;
+        }
+
+        /* --- 버튼 공통 스타일 --- */
+        #next-button, #review-button, #restart-button, .back-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 20px;
+            box-sizing: border-box;
+        }
+        
+        #review-button {
+            background-color: var(--success-color);
+        }
+
+        /* --- 복습 모드 (리스트형) 스타일 --- */
+        .review-item {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            text-align: left;
+        }
+        
+        .review-item h3 {
+            color: var(--primary-color);
+            border-bottom: 2px dashed var(--secondary-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        
+        .review-info.user-answer { background-color: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .review-info.correct-answer { background-color: #d4edda; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .review-info.explanation { background-color: #e6f7ff; padding: 15px; margin-top: 15px; border-left: 4px solid var(--primary-color); }
+
+        .review-info strong { font-weight: bold; margin-right: 5px; }
+    </style>
+    
+</head>
+<body>
+
+    <div id="quiz-container">
+        <h1>💡 법률 상식 퀴즈</h1>
+        
+        <div id="quiz-header">
+            <div id="quiz-status">
+                문제: <span id="current-quiz-index">0</span> / <span id="total-quiz-count">0</span>
+                | 정답: <span id="correct-count">0</span>
+            </div>
+            <div id="timer">15s</div>
+        </div>
+        
+        <div id="question-area">
+            <div id="question-text">퀴즈를 불러오는 중...</div>
+            <div id="options-container">
+                </div>
+        </div>
+
+        <div id="explanation-area" style="display: none;">
+            <div id="feedback-message"></div>
+            <h3>🔍 자세한 해설 (복습 모드)</h3>
+            <p id="explanation-content"></p>
+        </div>
+
+        <button id="next-button" style="display: none;">다음 문제로 이동</button>
+    </div>
+
+    <div id="result-screen">
+        <h2>🎉 퀴즈 완료!</h2>
+        <p>총 정답 수: <span id="final-correct-count"></span> / <span id="final-total-count"></span></p>
+        <p>점수: <span id="final-score"></span>점</p>
+        
+        <button id="review-button">📚 복습 노트 보기</button>
+        <button id="restart-button" class="back-button" onclick="resetQuiz()">다시 시작 (새 퀴즈)</button>
+    </div>
+
+    <div id="review-screen">
+        <h1>📚 복습 노트</h1>
+        <div id="review-list">
+            </div>
+        <button class="back-button" onclick="showResultsScreen()">결과 화면으로 돌아가기</button>
+    </div>
+
+    <script>
+        // 상수 및 변수 설정
+        const QUIZ_API_URL = '/api/quizzes'; // 🎯 Vercel 배포를 위한 상대 경로
+        const STORAGE_KEY_QUIZZES = 'lawQuizzesData';   
+        const STORAGE_KEY_PROGRESS = 'lawQuizProgress'; 
+        
+        let allQuizzes = [];
+        let currentQuizIndex = 0;
+        let correctCount = 0;
+        let timerInterval;
+        let isAnswered = false;
+        
+        // DOM 요소 캐싱
+        const questionTextEl = document.getElementById('question-text');
+        const optionsContainerEl = document.getElementById('options-container');
+        const nextButtonEl = document.getElementById('next-button');
+        const timerEl = document.getElementById('timer');
+        const currentQuizIndexEl = document.getElementById('current-quiz-index');
+        const totalQuizCountEl = document.getElementById('total-quiz-count');
+        const correctCountEl = document.getElementById('correct-count');
+        const explanationAreaEl = document.getElementById('explanation-area');
+        const explanationContentEl = document.getElementById('explanation-content');
+        const feedbackMessageEl = document.getElementById('feedback-message');
+        const resultScreenEl = document.getElementById('result-screen');
+        const quizContainerEl = document.getElementById('quiz-container');
+        const reviewScreenEl = document.getElementById('review-screen');
+        const reviewListEl = document.getElementById('review-list');
+        const reviewButtonEl = document.getElementById('review-button');
+
+        // --- 로컬 스토리지 관리 함수 ---
+
+        function saveProgressToLocalStorage() {
+            const progress = {
+                index: currentQuizIndex,
+                correct: correctCount,
+                total: allQuizzes.length
+            };
+            localStorage.setItem(STORAGE_KEY_PROGRESS, JSON.stringify(progress));
+        }
+
+        function loadProgressFromLocalStorage() {
+            const data = localStorage.getItem(STORAGE_KEY_PROGRESS);
+            return data ? JSON.parse(data) : null;
+        }
+        
+        function saveQuizzesToLocalStorage() {
+            localStorage.setItem(STORAGE_KEY_QUIZZES, JSON.stringify(allQuizzes));
+        }
+
+        function loadQuizzesFromLocalStorage() {
+            const data = localStorage.getItem(STORAGE_KEY_QUIZZES);
+            return data ? JSON.parse(data) : null;
+        }
+
+        // --- 1. 퀴즈 데이터 로드 ---
+        async function loadQuizzes(force_reload = false) { 
+            const cachedData = loadQuizzesFromLocalStorage();
+            const cachedProgress = loadProgressFromLocalStorage();
+            
+            // 1. 로컬 스토리지에 데이터가 있고, 진행 상황이 저장되어 있으면 로드 (force_reload가 false일 때만)
+            if (cachedData && cachedProgress && cachedData.length === cachedProgress.total && !force_reload) {
+                allQuizzes = cachedData;
+                currentQuizIndex = cachedProgress.index;
+                correctCount = cachedProgress.correct;
+                console.log(`✅ 로컬 스토리지에서 퀴즈 로드. 현재 ${currentQuizIndex + 1}번째 문제부터 시작.`);
+                
+            } else {
+                // 2. 데이터가 없거나 force_reload가 true이면 API에서 새로 로드
+                if (force_reload) {
+                    console.log("🔄 '다시 시작' 버튼에 의해 새 퀴즈 세트를 로드합니다.");
+                    // 🎯 새 퀴즈를 로드하므로, 진행 상황과 기존 퀴즈 데이터를 초기화 (로컬 스토리지 보존 요구사항 반영)
+                    // 새 퀴즈를 가져올 때는 기존 퀴즈 데이터(STORAGE_KEY_QUIZZES)를 지워야 오답 노트에 중복되거나 충돌하지 않음
+                    localStorage.removeItem(STORAGE_KEY_PROGRESS); 
+                    localStorage.removeItem(STORAGE_KEY_QUIZZES); 
+                } else {
+                    console.log("🚀 초기 로드: 로컬 데이터가 없으므로 새 퀴즈 세트를 로드합니다.");
+                }
+                
+                questionTextEl.textContent = "🚀 퀴즈 서버에서 새로운 데이터를 불러오는 중...";
+                try {
+                    const response = await fetch(QUIZ_API_URL);
+                    if (!response.ok) throw new Error(`HTTP 오류! 상태: ${response.status}`);
+                    
+                    allQuizzes = await response.json();
+                    if (allQuizzes.length === 0) throw new Error("서버에서 유효한 퀴즈 데이터를 받지 못했습니다.");
+                    
+                    currentQuizIndex = 0;
+                    correctCount = 0;
+                    
+                    saveQuizzesToLocalStorage(); 
+                    saveProgressToLocalStorage();
+                    console.log("✅ API에서 새 퀴즈 로드 및 로컬 스토리지에 저장 완료.");
+                    
+                } catch (error) {
+                    console.error("퀴즈 로드 실패:", error);
+                    questionTextEl.textContent = `❌ 퀴즈 로드 실패: ${error.message}. Vercel 환경 변수(API 키) 설정 또는 서버 상태를 확인해 주세요.`;
+                    timerEl.textContent = "오류";
+                    return;
+                }
+            }
+            
+            totalQuizCountEl.textContent = allQuizzes.length;
+            correctCountEl.textContent = correctCount;
+
+            // 퀴즈가 완료된 상태라면 결과 화면을 보여줌
+            if (currentQuizIndex >= allQuizzes.length && !force_reload) {
+                showResults();
+            }
+            // force_reload 시에는 resetQuiz()에서 showQuiz()를 호출합니다.
+        }
+
+        // --- 2. 퀴즈 표시 ---
+        function showQuiz() {
+            quizContainerEl.style.display = 'block';
+            resultScreenEl.style.display = 'none';
+            reviewScreenEl.style.display = 'none';
+
+            isAnswered = false;
+            nextButtonEl.style.display = 'none';
+            explanationAreaEl.style.display = 'none'; 
+            
+            const quiz = allQuizzes[currentQuizIndex];
+            
+            currentQuizIndexEl.textContent = currentQuizIndex + 1;
+            questionTextEl.innerHTML = `<span style="color: var(--secondary-color);">(${quiz.source_law_name})</span> ${quiz.question}`;
+            optionsContainerEl.innerHTML = '';
+            
+            quiz.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = `${index + 1}. ${option.text}`;
+                button.dataset.isCorrect = option.is_correct;
+                button.addEventListener('click', () => checkAnswer(button, quiz));
+                optionsContainerEl.appendChild(button);
+            });
+            
+            nextButtonEl.textContent = (currentQuizIndex < allQuizzes.length - 1) ? "다음 문제로 이동" : "결과 보기";
+            startTimer(quiz.timer_sec || 15);
+        }
+        
+        // --- 3. 정답 확인 및 피드백 (로컬 스토리지에 영구 저장) ---
+        function checkAnswer(selectedButton, quiz) {
+            if (isAnswered) return;
+            isAnswered = true;
+            clearInterval(timerInterval);
+            
+            const isTimeUp = !selectedButton;
+            const isCorrect = isTimeUp ? false : selectedButton.dataset.isCorrect === 'true';
+            
+            quiz.is_correct_answered = isCorrect;
+            quiz.user_answer_text = isTimeUp ? "시간 초과 (미선택)" : selectedButton.textContent.substring(3).trim();
+            saveQuizzesToLocalStorage(); 
+
+            if (isCorrect) {
+                correctCount++;
+                feedbackMessageEl.textContent = "✅ 정답입니다!";
+                feedbackMessageEl.className = 'feedback-message feedback-correct';
+            } else {
+                feedbackMessageEl.textContent = isTimeUp ? "⏰ 시간 초과로 오답 처리됩니다." : "❌ 오답입니다.";
+                feedbackMessageEl.className = 'feedback-message feedback-incorrect';
+                if (selectedButton) {
+                    selectedButton.classList.add('incorrect');
+                }
+            }
+
+            document.querySelectorAll('.option-button').forEach(btn => {
+                btn.disabled = true;
+                if (btn.dataset.isCorrect === 'true') { btn.classList.add('correct'); }
+            });
+
+            correctCountEl.textContent = correctCount;
+            explanationContentEl.textContent = quiz.explanation;
+            explanationAreaEl.style.display = 'block';
+            nextButtonEl.style.display = 'block';
+            
+            saveProgressToLocalStorage(); 
+        }
+
+        // --- 4. 타이머 기능 ---
+        function startTimer(duration) {
+            let timeRemaining = duration;
+            timerEl.textContent = `${timeRemaining}s`;
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                timerEl.textContent = `${timeRemaining}s`;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerEl.textContent = 'TIME UP!';
+                    if (!isAnswered) {
+                         checkAnswer(null, allQuizzes[currentQuizIndex]);
+                    }
+                }
+            }, 1000);
+        }
+
+        // --- 5. 결과 화면 표시 ---
+        function showResults() {
+            clearInterval(timerInterval); 
+            
+            if (currentQuizIndex < allQuizzes.length) {
+                currentQuizIndex = allQuizzes.length;
+                saveProgressToLocalStorage();
+            }
+
+            quizContainerEl.style.display = 'none';
+            resultScreenEl.style.display = 'block';
+            reviewScreenEl.style.display = 'none';
+
+            const total = allQuizzes.length;
+            const score = Math.round((correctCount / total) * 100);
+
+            document.getElementById('final-correct-count').textContent = correctCount;
+            document.getElementById('final-total-count').textContent = total;
+            document.getElementById('final-score').textContent = score;
+        }
+        
+        // --- 6. 복습 노트 화면 표시 (리스트형) ---
+        function showReviewMode() {
+            resultScreenEl.style.display = 'none';
+            quizContainerEl.style.display = 'none';
+            reviewScreenEl.style.display = 'block';
+
+            reviewListEl.innerHTML = '';
+            
+            // 🎯 로컬 스토리지에 저장된 최종 데이터를 로드하여 복습 노트를 만듭니다.
+            const reviewQuizzes = loadQuizzesFromLocalStorage() || allQuizzes; 
+            
+            const incorrectQuizzes = reviewQuizzes.filter(quiz => quiz.is_correct_answered === false);
+
+            if (incorrectQuizzes.length === 0) {
+                reviewListEl.innerHTML = '<p style="text-align: center; font-size: 1.2em; color: var(--success-color);">🎉 **모든 문제에 정답을 맞히셨습니다! 복습할 문제가 없습니다.**</p>';
+                return;
+            }
+
+            incorrectQuizzes.forEach((quiz, index) => {
+                const listItem = document.createElement('div');
+                listItem.className = 'review-item';
+                
+                const correctAnswer = quiz.options.find(opt => opt.is_correct) || { text: '정답 없음' };
+                const answerStatus = '❌ 오답 / 시간 초과';
+                const answerColor = 'var(--danger-color)';
+
+                listItem.innerHTML = `
+                    <h3>${index + 1}. ${quiz.question} <span style="font-size: 0.8em; color: var(--secondary-color);">(${quiz.source_law_name})</span></h3>
+                    
+                    <div class="review-info user-answer">
+                        <strong>나의 답변:</strong> 
+                        <span style="color: ${answerColor}; font-weight: bold;">${answerStatus}</span>
+                        <p>${quiz.user_answer_text || '선택 없음'}</p>
+                    </div>
+                    
+                    <div class="review-info correct-answer">
+                        <strong>정답:</strong>
+                        <p>${correctAnswer.text}</p>
+                    </div>
+
+                    <div class="review-info explanation">
+                        <strong>자세한 해설:</strong>
+                        <p>${quiz.explanation}</p>
+                    </div>
+                `;
+                
+                reviewListEl.appendChild(listItem);
+            });
+        }
+        
+        // --- 결과 화면으로 돌아가기 ---
+        function showResultsScreen() {
+             showResults();
+        }
+
+        // --- 퀴즈 초기화 (새 퀴즈 로드) ---
+        function resetQuiz() {
+            // 🎯 로컬 스토리지를 지우지 않고, loadQuizzes에 강제 로드 플래그(true)를 전달하여 새 퀴즈를 API에서 로드합니다.
+            loadQuizzes(true).then(() => { 
+                showQuiz(); // 새 퀴즈를 로드한 후 첫 번째 문제 표시
+            }).catch(error => {
+                console.error("퀴즈 재시작 실패:", error);
+                alert("퀴즈 재시작에 실패했습니다. 서버 상태를 확인해 주세요.");
+            });
+        }
+
+
+        // --- 이벤트 리스너 등록 ---
+        nextButtonEl.addEventListener('click', () => {
+             if (currentQuizIndex < allQuizzes.length - 1) {
+                currentQuizIndex++;
+                saveProgressToLocalStorage(); 
+                showQuiz();
+            } else {
+                showResults();
+            }
+        });
+
+        reviewButtonEl.addEventListener('click', showReviewMode);
+
+        // --- 초기 실행 ---
+        document.addEventListener('DOMContentLoaded', () => loadQuizzes(false));
+    </script>
+</body>
+</html>
