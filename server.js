@@ -36,13 +36,5 @@ app.get('/api/quizzes', async (req, res) => {
     }
 });
 
-// 🎯 Vercel Serverless Function의 핵심: Express 앱 자체를 모듈로 내보냅니다.
-// 로컬 환경에서 테스트할 경우에만 app.listen을 사용합니다.
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-    const port = 3005;
-    app.listen(port, () => {
-        console.log(`🚀 Node.js 서버가 http://localhost:${port} 에서 실행 중입니다.`);
-    });
-}
 
 module.exports = app;
